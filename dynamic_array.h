@@ -1,6 +1,9 @@
 #ifndef INCLUDED_DYNAMIC_ARRAY
 #define INCLUDED_DYNAMIC_ARRAY
 
+#include <cstddef>
+#include <algorithm>
+
 namespace nonsense {
 
 template<typename T>
@@ -39,12 +42,17 @@ class DynamicArray {
 };
 
 namespace {
-std::size_t calc_new_size(size_type capacity, size_type new_size, double growth_factor) {
+std::size_t calc_new_size(std::size_t capacity, std::size_t new_size, double growth_factor) {
+    if (0 == capacity)
+	capacity = 1;
     if (capacity > new_size)
 	return capacity;
 
-    for(; capacity < new_size; capacity *= growth_factor);
-    return capacity;
+    auto cap_d = static_cast<double>(capacity); // do all calculations with double not get
+	// truncation errors.
+    for(; static_cast<std::size_t>(cap_d) < new_size; cap_d *= growth_factor);
+
+    return static_cast<std::size_t>(cap_d);
 }
 } // close anon namespace
 
@@ -68,18 +76,17 @@ void DynamicArray<T>::resize(const size_type new_size) {
     if (new_size < capacity_)
 	return;
 
-    auto new_cap = calc_new_size(this->capacity_, this->new_size, k_GrowthFactor);
+    auto new_cap = calc_new_size(this->capacity_, new_size, k_GrowthFactor);
 
     if (new_cap == this->capacity_) {
 	return;
     }
 
     // create new array and copy all elements over.
-    new_array = new T[new_cap];
+    T* new_array = new T[new_cap];
     for (size_type i = 0; i < this->size_; ++i) {
 	new_array[i] = array_[i];
     }
-    auto sz = this->size_;
 
     std::swap(new_array, array_);
     if (0 != new_array) {
@@ -87,6 +94,49 @@ void DynamicArray<T>::resize(const size_type new_size) {
     }
 }
 
+template<typename T>
+void DynamicArray<T>::push_back(const value_type &v) {
+    if (size_ + 1 > capacity_)
+	this->resize((size_ + 1) * k_GrowthFactor);
+
+    array_[size_++] = v;
+}
+
+template<typename T>
+void DynamicArray<T>::pop_back() {
+    // TODO - shrink array when it gets smaller than a certain size.
+    --size_;
+}
+
+template<typename T>
+typename DynamicArray<T>::const_iterator DynamicArray<T>::begin() const {
+    return array_;
+}
+
+template<typename T>
+typename DynamicArray<T>::const_iterator DynamicArray<T>::end() const {
+    return &array_[size_]; // past the end iterator
+}
+
+template<typename T>
+typename DynamicArray<T>::iterator DynamicArray<T>::begin() {
+    return array_;
+}
+
+template<typename T>
+typename DynamicArray<T>::iterator DynamicArray<T>::end() {
+    return &array_[size_]; // past the end iterator
+}
+
+template<typename T>
+T & DynamicArray<T>::front() {
+    return array_[0];
+}
+
+template<typename T>
+T & DynamicArray<T>::back() {
+    return array_[size_-1];
+}
 
 
 } // close namespace nonsense
