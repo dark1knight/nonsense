@@ -104,7 +104,8 @@ void DynamicArray<T>::push_back(const value_type &v) {
 
 template<typename T>
 void DynamicArray<T>::pop_back() {
-    // TODO - shrink array when it gets smaller than a certain size.
+    // remove the last element
+    array_[size_-1].~T();
     --size_;
 }
 
